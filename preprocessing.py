@@ -9,7 +9,7 @@ All steps outlined in this script are described in the README
 
 @author: Simon Kern
 """
-
+from joblib import Parallel, delayed
 import os
 import mne
 import json
@@ -27,6 +27,9 @@ from numpy.lib.stride_tricks import as_strided
 from tqdm import tqdm # fancy progress bars
 from config import md5hash
 from natsort import natsorted
+from joblib.memory import Memory
+
+memory = Memory(config.cache_dir)
 
 np.random.seed(0)
 #%% load data
@@ -41,41 +44,38 @@ subjects = sorted(subjects)
 # ram_available = vram().available/1024**3
 # ram_enough = ram_available<ram_necessary
 data = {}
-stop
- # dont perform analysis when loading script accidentially
-#%% 1.0 Annotate bad channels manually by eye-balling
-for subj in tqdm(subjects, desc='annotate bad channels'):
-    os.makedirs(f'{data_dir}/{subj}/', exist_ok=True)
-    bads_json = f'{data_dir}/{subj}/{subj}_bad_chs_manual.json'   
-    if not os.path.exists(bads_json): 
-        subj_vhdr = f'{data_dir}{subj}.vhdr'
-        eogs = {'VEOG':'eog', 'HEOG':'eog'}
-        miscs = {ch:'misc' for ch in ['M1', 'M2', 'IO1', 'IO2', 'Afp9', 'Afp10']}
-        raw = mne.io.read_raw_brainvision(subj_vhdr, preload=True, verbose='WARNING')
-        raw.set_channel_types({**eogs, **miscs})
-        raw.notch_filter(50) # to remove visual noise that can easily be filtered
-        print('please manually annotate bad channels by inspecting the plot')
-        fig = raw.plot(duration=10, start=1000, n_channels=len(raw.ch_names), scalings={'eeg':2e-5, 'eog':1e-4, 'misc':1e-4}, block=True)
-        bads = raw.info['bads']
-        
-        
-    
-    
 
+# dont perform analysis when loading script accidentially
+#%% 1.0 Annotate bad channels manually by eye-balling
+# for subj in tqdm(subjects, desc='annotate bad channels'):
+#     os.makedirs(f'{data_dir}/{subj}/', exist_ok=True)
+#     bads_json = f'{data_dir}/{subj}/{subj}_bad_chs_manual.json'   
+#     if not os.path.exists(bads_json): 
+#         subj_vhdr = f'{data_dir}{subj}.vhdr'
+#         eogs = {'VEOG':'eog', 'HEOG':'eog'}
+#         miscs = {ch:'misc' for ch in ['M1', 'M2', 'IO1', 'IO2', 'Afp9', 'Afp10']}
+#         raw = mne.io.read_raw_brainvision(subj_vhdr, preload=True, verbose='WARNING')
+#         raw.set_channel_types({**eogs, **miscs})
+#         raw.notch_filter(50) # to remove visual noise that can easily be filtered
+#         print('please manually annotate bad channels by inspecting the plot')
+#         fig = raw.plot(duration=10, start=1000, n_channels=len(raw.ch_names), scalings={'eeg':2e-5, 'eog':1e-4, 'misc':1e-4}, block=True)
+#         bads = raw.info['bads']
 
 report = {}
-
-for subj in tqdm(subjects, desc='Loading participant information'):
+# for subj in tqdm(subjects, desc='Loading participant information'):
+    
+@memory.cache
+def preprocess(subj):
     subj_dir = f'{data_dir}/{subj}/'
     subj_vhdr = f'{data_dir}/{subj}.vhdr'
-    epochs_fif = f'{subj_dir}/{subj}_epochs.fif'
+    epochs_fif = f'{subj_dir}/{subj}-epo.fif'
     ica_fif   = f'{subj_dir}/{subj}_ica.fif'
     ica_json = f'{subj_dir}/{subj}_ica_description.json'
     bads_json = f'{subj_dir}/{subj}_bad_chs_manual.json'   
     trigger_txt = f'{subj_dir}/{subj}_epochs_type.txt'   
     ar_file_template = '{subj_dir}/{subj}_bad_epochs_autoreject_{md5hash(epochs.get_data())}.json'
     os.makedirs(subj_dir, exist_ok=True)
-    
+    report = {}
     report[subj] = {}
 
 
@@ -166,7 +166,8 @@ for subj in tqdm(subjects, desc='Loading participant information'):
     print(f'## Epoching')
     raw_erp = raw.copy()
     raw_erp.notch_filter(50)
-    events, stim_dict = mne.events_from_annotations(raw_erp, regexp='.*Stimulus')
+    f = lambda x: int(x.split('/')[1])
+    events, stim_dict = mne.events_from_annotations(raw_erp, event_id=f, regexp='.*Stimulus')
     stim_dict = {val:key for key, val in stim_dict.items()}
 
     report[subj]['stim_dict'] = stim_dict
@@ -237,11 +238,18 @@ for subj in tqdm(subjects, desc='Loading participant information'):
     ransac.fit(epochs)
     report[subj]['bad_chs_RANSAC'] = ransac.bad_chs_
     
+    # mark bad epochs with autoreject (we decided so)
+    epochs['info'].bads = bad_epochs_autoreject
     
     with open(f'{data_dir}/report.pkl', 'wb') as f:
         pickle.dump(report,f)
+     
     
-    
+    return report[subj]
+ 
+reports = Parallel(n_jobs=16)(delayed(preprocess)(subj) for subj in subjects)
+ 
+stop   
 
 #%% calculate good/bad epochs as percentage per participant
 import matplotlib.pyplot as plt
@@ -308,7 +316,7 @@ plt.savefig('plot_bad_epochs_per_participant.png')
 #%% calculate good/bad epochs per trial type
 
 
-# H1: manmade vs natural trials
+#%% H1: manmade vs natural trials
 fig, axs = plt.subplots(1,3)
 
 algorithms = ['bad_epochs', 'bad_epochs_autoreject', 'bad_epochs_FASTER']
@@ -343,7 +351,7 @@ plt.tight_layout()
 plt.savefig('plot_bad_epochs_H1.png')
 
 
-# H2: old vs new
+#%% H2: old vs new
 fig, axs = plt.subplots(1,3)
 
 algorithms = ['bad_epochs', 'bad_epochs_autoreject', 'bad_epochs_FASTER']

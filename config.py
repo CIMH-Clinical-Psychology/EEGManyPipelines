@@ -15,6 +15,8 @@ def md5hash(array):
     return hashlib.shake_256(xbytes).hexdigest(5)
 
 def stim2desc(string):
+    if not isinstance(string, str):
+        string = str(string)
     num = string.split('/')[-1]
     scene_cat, typ, behaviour, memory = num
 
@@ -37,14 +39,14 @@ host     = platform.node().lower()    # the name of this computer
 system   = platform.system().lower()  # linux, windows or mac.
 home = os.path.expanduser('~')
 
-if username == 'simon' and host=='ess-donatra':
-    data_dir = 'z:/EEGManyPipelines/'
+cache_dir = None
 
 if username == 'simon' and host=='desktop-simon':
     data_dir = 'z:/EEGManyPipelines/'
     
 if username == 'simon.kern' and host=='zilxap29':
     data_dir = '/home/simon.kern/EMP_data/'  
+    cache_dir = '/data/EEGManyPipelines/joblib-cache/'
   
 else:
     print('Username {} on host {} with {} has no configuration.\n'.format(username,host,system) + \
