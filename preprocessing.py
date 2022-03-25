@@ -64,10 +64,12 @@ data = {}
 report = {}
 # for subj in tqdm(subjects, desc='Loading participant information'):
     
-@memory.cache
 def preprocess(subj):
+    from config import md5hash
+
     subj_dir = f'{data_dir}/{subj}/'
     subj_vhdr = f'{data_dir}/{subj}.vhdr'
+    report_pkl = f'{subj_dir}/report.pkl'
     epochs_fif = f'{subj_dir}/{subj}-epo.fif'
     ica_fif   = f'{subj_dir}/{subj}_ica.fif'
     ica_json = f'{subj_dir}/{subj}_ica_description.json'
@@ -93,11 +95,12 @@ def preprocess(subj):
     # manually annotate bad channels & interpolate them 
     # load previously annotated bad channels
     print('## loading previously manually determined bad channels')
-    with open(bads_json, 'r') as f:
-        bads = json.load(f)
-        if len(bads)>0:
-            raw.info['bads'] = bads
-        report[subj]['bad_chs'] = bads
+    if os.path.isfile(bads_json):
+        with open(bads_json, 'r') as f:
+            bads = json.load(f)
+            if len(bads)>0:
+                raw.info['bads'] = bads
+            report[subj]['bad_chs'] = bads
     # interpolate bad channels
     print('## Interpolate bad channels')
     raw.interpolate_bads()
@@ -120,7 +123,7 @@ def preprocess(subj):
 
     #%% 1.2.2 downsample to 250 Hz, all relevant ERP frequencies should be below that
     print('## resampling')
-    raw.resample(250)
+    # raw.resample(250)
     
     
 #%% 1.3 artefact rejection
@@ -166,17 +169,19 @@ def preprocess(subj):
     print(f'## Epoching')
     raw_erp = raw.copy()
     raw_erp.notch_filter(50)
-    f = lambda x: int(x.split('/')[1])
-    events, stim_dict = mne.events_from_annotations(raw_erp, event_id=f, regexp='.*Stimulus')
-    stim_dict = {val:key for key, val in stim_dict.items()}
+    event_func = lambda x: int(x.split('/')[1])
+    events, stim_dict = mne.events_from_annotations(raw_erp, event_id=event_func, regexp='.*Stimulus')
+    stim_dict = {config.stim2desc(key):val for key, val in stim_dict.items()}
 
     report[subj]['stim_dict'] = stim_dict
     # reject = {'eeg':100e-3} # +- 100 mV
-    epochs = mne.Epochs(raw_erp, events, picks=picks_eeg, preload=True)
+    epochs = mne.Epochs(raw_erp, events, tmin=-0.2, tmax=1, event_id=stim_dict, picks=picks_eeg, preload=True)
     epochs.filter(0, 35, method='fir')
+    
     epochs.save(epochs_fif, fmt='double', overwrite=True)
     np.savetxt(trigger_txt, events[:,2], fmt='%d')
-    report[subj]['epoch_type'] = np.array([stim_dict[e] for e in events[:,2]])
+    stim_dict_inv = {v: k for k, v in stim_dict.items()}
+    report[subj]['epoch_type'] = np.array([stim_dict_inv[e] for e in events[:,2]])
     #%% apply artefact criteria 
     # see also Bublatzky et al 2020  https://doi.org/10.1016/j.cortex.2020.07.009
     
@@ -239,15 +244,14 @@ def preprocess(subj):
     report[subj]['bad_chs_RANSAC'] = ransac.bad_chs_
     
     # mark bad epochs with autoreject (we decided so)
-    epochs['info'].bads = bad_epochs_autoreject
     
-    with open(f'{data_dir}/report.pkl', 'wb') as f:
+    with open(report_pkl, 'wb') as f:
         pickle.dump(report,f)
      
     
     return report[subj]
  
-reports = Parallel(n_jobs=16)(delayed(preprocess)(subj) for subj in subjects)
+reports = Parallel(n_jobs=16)(delayed(preprocess)(subj) for subj in tqdm(subjects))
  
 stop   
 

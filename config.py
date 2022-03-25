@@ -22,14 +22,13 @@ def stim2desc(string):
 
     convd = {0: {1: 'man-made', 2:'natural'},
              1: {0: 'new', 1:'old'},
-             2: {1: 'hit', 2:'miss', 3:'false alarm', 
-                 4:'correct rejection', 9: 'N/A'},
-             3: {0: 'remembered', 1: 'forgotten'}}
+             2: {1: 'hit', 2:'miss', 3:'false-alarm', 
+                 4:'correct-rejection', 9: 'N/A'},
+             3: {0: 'remembered', 1: 'forgotten', 9:'N/A'}}
     
 
     desc = [convd[i][int(n)] for i, n in enumerate(num)]
-    return ', '.join(desc)
-        
+    return '/'.join(desc)    
         
 ###############################
 ###USER SPECIFIC CONFIGURATION
@@ -46,7 +45,7 @@ if username == 'simon' and host=='desktop-simon':
     
 if username == 'simon.kern' and host=='zilxap29':
     data_dir = '/home/simon.kern/EMP_data/'  
-    cache_dir = '/data/EEGManyPipelines/joblib-cache/'
+    cache_dir = '/data/EEGManyPipelines/joblib-cache-2/'
   
 else:
     print('Username {} on host {} with {} has no configuration.\n'.format(username,host,system) + \

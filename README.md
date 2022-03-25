@@ -127,7 +127,7 @@ old images correctly recognized as old [hits] vs. old images incorrectly judged 
 
 same as above
 
-## notes/qestions:
+## notes/questions:
 
 ### 28.02
 
@@ -151,6 +151,8 @@ same as above
 ```
 
 3. spectogram: averaging before spectogram creation or after?
+4. Equalize event counts before averaging?
+5. Resampling later?
 
 ### earlier
 
