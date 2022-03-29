@@ -42,8 +42,10 @@ cache_dir = None
 
 if username == 'simon' and host=='desktop-simon':
     data_dir = 'z:/EEGManyPipelines/'
+    cache_dir = 'z:/cache/'
+
     
-if username == 'simon.kern' and host=='zilxap29':
+elif username == 'simon.kern' and host=='zilxap29':
     data_dir = '/home/simon.kern/EMP_data/'  
     cache_dir = '/data/EEGManyPipelines/joblib-cache-2/'
   

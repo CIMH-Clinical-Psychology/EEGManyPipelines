@@ -54,9 +54,11 @@ Data at this point:
   - from -200ms to +500ms after trigger onset
   - baseline corrected from -200ms to 0ms
   - bad epochs marked by `autoreject`
+  - Original sampling frequency of 512
 - `epochs_erp`
   - same as above 
   - additional LP 35 Hz
+  - downsampled to 250 Hz
 
 ### 2.1 H1: Effect of scene category
 
@@ -78,8 +80,28 @@ Using `epochs_erp`
 
 **calculate component**
 
-1. calculate peak position per participant for chosen electrode
+1. calculate voltage per participant for chosen electrode
 2. time windows for component min to max of peak +-5ms 
+3. AUC +-5ms of peak, take one time window for all participants
+4. repeated measures ttest
+
+**Results:**
+
+- Negative peak between 0.8 and 0.15 on grand average is at ~125ms.
+- voltage:
+  - `man-made = -3.05+-1.81 uV`
+  - `natural  = -2.71+-1.82 uV`
+- repeated measures ttest (`ttest_rel`)
+  - `p = 0.00093` 
+- Cluster analysis showed significant cluster on occipital electrodes at a later point
+
+<img title="" src="md_assets/2022-03-29-10-09-50-image.png" alt="" width="577">
+
+![](md_assets/2022-03-29-10-16-01-image.png)
+
+![](md_assets/2022-03-29-10-18-28-image.png) 
+
+![](md_assets/2022-03-29-10-19-09-image.png)
 
 ### 2.2 H2: image novelty
 
@@ -97,6 +119,8 @@ Using `epochs_erp`
 
 1. make avg of trials per subj per electrode
 2. plot grand averages from 300-500ms, then choose electrodes to make the calculation
+3. AUC +-5ms of peak, take one time window for all participants
+   4* repeated measures ttest
 
 **H2b Calculate**
 
@@ -118,11 +142,16 @@ old images correctly recognized as old [hits] vs. old images incorrectly judged 
 
 - plot grand avrg and differences between categories
 - for later: divide in time windows, calculate statistics, use cluster analysis / stats corrections to check where differences are significant
+- mass univat ansatz
+- cluster correction from oostenfeld
 
 ### 2.3 H4: successful recognition
 
 ```
-
+4. There are effects of subsequent memory (i.e., a difference between images that will
+be successfully remembered vs. forgotten on a subsequent repetition) ...    
+  a. ... on EEG voltage at any channels, at any time.
+  b. ... on spectral power, at any frequencies, at any channels, at any time.
 ```
 
 same as above
@@ -153,6 +182,8 @@ same as above
 3. spectogram: averaging before spectogram creation or after?
 4. Equalize event counts before averaging?
 5. Resampling later?
+
+make difference topo plot
 
 ### earlier
 

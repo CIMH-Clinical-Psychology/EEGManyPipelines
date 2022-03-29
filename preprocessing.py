@@ -64,18 +64,20 @@ data = {}
 report = {}
 # for subj in tqdm(subjects, desc='Loading participant information'):
     
-def preprocess(subj):
+def preprocess(subj, resample=True):
     from config import md5hash
+
+    sfreq = 'resampled' if resample else 'original'
 
     subj_dir = f'{data_dir}/{subj}/'
     subj_vhdr = f'{data_dir}/{subj}.vhdr'
     report_pkl = f'{subj_dir}/report.pkl'
-    epochs_fif = f'{subj_dir}/{subj}-epo.fif'
-    ica_fif   = f'{subj_dir}/{subj}_ica.fif'
-    ica_json = f'{subj_dir}/{subj}_ica_description.json'
-    bads_json = f'{subj_dir}/{subj}_bad_chs_manual.json'   
-    trigger_txt = f'{subj_dir}/{subj}_epochs_type.txt'   
-    ar_file_template = '{subj_dir}/{subj}_bad_epochs_autoreject_{md5hash(epochs.get_data())}.json'
+    epochs_fif = f'{subj_dir}/{subj}_{sfreq}-epo.fif'
+    ica_fif   = f'{subj_dir}/{subj}_{sfreq}_ica.fif'
+    ica_json = f'{subj_dir}/{subj}_{sfreq}_ica_description.json'
+    bads_json = f'{subj_dir}/{subj}_{sfreq}_bad_chs_manual.json'   
+    trigger_txt = f'{subj_dir}/{subj}_{sfreq}_epochs_type.txt'   
+    ar_file_template = '{subj_dir}/{subj}_{sfreq}_bad_epochs_autoreject_{md5hash(epochs.get_data())}.json'
     os.makedirs(subj_dir, exist_ok=True)
     report = {}
     report[subj] = {}
@@ -122,8 +124,9 @@ def preprocess(subj):
     raw.filter(0.1, 100, method='fir', picks=picks_eeg)
 
     #%% 1.2.2 downsample to 250 Hz, all relevant ERP frequencies should be below that
-    print('## resampling')
-    # raw.resample(250)
+    if resample:
+        print('## resampling')
+        raw.resample(250)
     
     
 #%% 1.3 artefact rejection
@@ -250,8 +253,9 @@ def preprocess(subj):
      
     
     return report[subj]
- 
-reports = Parallel(n_jobs=16)(delayed(preprocess)(subj) for subj in tqdm(subjects))
+
+for do_resample in [False, True]:
+    reports = Parallel(n_jobs=2)(delayed(preprocess)(subj, resample=do_resample) for subj in tqdm(subjects))
  
 stop   
 
