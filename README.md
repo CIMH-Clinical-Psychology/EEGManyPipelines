@@ -87,21 +87,17 @@ Using `epochs_erp`
 
 **Results:**
 
-- Negative peak between 0.8 and 0.15 on grand average is at ~125ms.
-- voltage:
+- Negative peak between `0.08` and `0.15` on grand average is at `125ms @ Fz`.
+- voltage +-5ms:
   - `man-made = -3.05+-1.81 uV`
   - `natural  = -2.71+-1.82 uV`
 - repeated measures ttest (`ttest_rel`)
   - `p = 0.00093` 
 - Cluster analysis showed significant cluster on occipital electrodes at a later point
 
-<img title="" src="md_assets/2022-03-29-10-09-50-image.png" alt="" width="577">
+<img title="" src="md_assets/2022-03-29-10-09-50-image.png" alt="" width="408"><img title="" src="md_assets/2022-03-29-14-52-53-image.png" alt="" width="519">
 
-![](md_assets/2022-03-29-10-16-01-image.png)
-
-![](md_assets/2022-03-29-10-18-28-image.png) 
-
-![](md_assets/2022-03-29-10-19-09-image.png)
+<img title="" src="md_assets/2022-03-29-14-45-27-image.png" alt="" width="522"><img title="" src="md_assets/2022-03-29-10-18-28-image.png" alt="" width="461"> <img title="" src="md_assets/2022-03-29-10-19-09-image.png" alt="" width="481">
 
 ### 2.2 H2: image novelty
 
@@ -118,17 +114,90 @@ Using `epochs_erp`
 **H2a Calculate**
 
 1. make avg of trials per subj per electrode
-2. plot grand averages from 300-500ms, then choose electrodes to make the calculation
-3. AUC +-5ms of peak, take one time window for all participants
-   4* repeated measures ttest
+2. plot grand averages from 300-500ms, take peak negative electrode and surrounding frontal electrodes
+3. AUC 300ms-500ms of peak
+   * repeated measures ttest
+
+**Results**
+
+* Negative peak between `0.3` and `0.5` on grand average is at `FCz`
+* Taking electrodes `['FCz', 'FC1', 'FC2', 'Fz', 'F2', 'F1']`
+* voltage from `300-500ms` on these electrodes: 
+  * `new = -6.39+-3.46 uV`
+  * `old = -6.00+-3.53 uV`
+* repeated measures ttest (`ttest_rel`)
+  * `p = 0.0000046`
+
+<img src="md_assets/2022-03-29-14-42-35-image.png" title="" alt="" width="574">
+
+![](md_assets/2022-03-29-17-11-46-image.png)
+
+<img src="md_assets/2022-03-29-15-18-23-image.png" title="" alt="" width="751">
 
 **H2b Calculate**
 
-1. calculate spectra for theta (4-7 Hz)  for the time range using FFT or Wavelet (depending on what is used later)
+1. calculate spectra for theta (4-7 Hz)  for the time range using Wavelet
 
-**H2c Calculate**
+    **methods**:
 
-1. calculate spectra for alpha (8-14 Hz) for the time range using FFT or Wavelet (depending on what is used later)
+```raw
+For each participant:
+    For each epoch of participant:
+        1. calculate wavelet with
+        - freq = array([4. , 4.5 , 5. , 5.5, 6., 6.5 ])
+        - use half cycles
+    2. take segment between 300-500ms for fronto-central electrodes
+    3. calculate mean over result
+```
+
+**Result**
+
+- For electrodes `[FC5, FC3, FC1, FC6, FC4, FC2, FCz]`
+- Mean Power between 300-500 ms
+  - `new 6.25e-10+-2.91e-10`
+  - `old 6.54e-10+-3.44e-10`
+  - `p = 0.1`
+
+**Problems**:
+
+- How to normalize histograms?
+- What to do with outliers?
+
+![](md_assets/2022-03-30-15-23-22-image.png)
+
+![](md_assets/2022-03-30-14-57-38-image.png)
+
+**H2C**
+
+    **methods**:
+
+```raw
+For each participant:
+    For each epoch of participant:
+        1. calculate wavelet with
+        - freq = array([8. ,  8.5,  9. ,  9.5, 10. , 10.5, 11. , 11.5, 12. , 12.5, 13. , 13.5,])
+        - use half cycles
+    2. take segment between 300-500ms for posterior electrodes
+    3. calculate mean over result
+```
+
+**Result**
+
+* For electrodes `['P1', 'P3', 'P5', 'P7', 'P9', 'PO7', 'PO3', 'POz', 'Pz', 'P2', 'P4', 'P6', 'P8', 'P10', 'PO8', 'PO4']`
+* Mean Power between 300-500 ms
+  * `new 4.55e-10+-2.12e-10`
+  * `old 4.56e-10+-2.16e-10`
+  * `p = 0.6`
+
+
+
+![](md_assets/2022-03-30-15-15-41-image.png)
+
+![](md_assets/2022-03-30-15-11-25-image.png)
+
+
+
+
 
 ### 2.3 H3: successful recognition
 
@@ -145,6 +214,14 @@ old images correctly recognized as old [hits] vs. old images incorrectly judged 
 - mass univat ansatz
 - cluster correction from oostenfeld
 
+
+
+![](md_assets/2022-03-30-15-38-02-image.png)
+
+![](md_assets/2022-03-30-15-41-26-image.png)
+
+
+
 ### 2.3 H4: successful recognition
 
 ```
@@ -155,6 +232,14 @@ be successfully remembered vs. forgotten on a subsequent repetition) ...    
 ```
 
 same as above
+
+
+
+![](md_assets/2022-03-30-15-40-20-image.png)
+
+![](md_assets/2022-03-30-15-40-35-image.png)
+
+
 
 ## notes/questions:
 
