@@ -243,7 +243,7 @@ tmin, tmax = [0.3, 0.5]
 ERP_ch, _ = grand_avg.get_peak(tmin=tmin, tmax=tmax, mode='neg')
 
 chs = get_ch_neighbours(ERP_ch, 7)
-if 'Cz' in chs: chs.remove('Cz')
+chs = ['FCz', 'FC1', 'FC2']
 
 grands = {}
 erps = {}
@@ -292,7 +292,7 @@ tmin, tmax = [0.3, 0.5]
 freqs = np.arange(2, 20, .5)
 n_cycles = freqs / 2.  # different number of cycle per frequency
 
-ch_fronto_central = [ch for ch in info.ch_names if 'FC' in ch]
+ch_fronto_central = ['FCz', 'FC1', 'FC2']
 chs = ch_fronto_central
 
 df = pd.DataFrame({'type':[], 'subj':[], 'cond':[], 'power':[]})
@@ -360,14 +360,15 @@ tmin, tmax = [0.3, 0.5]
 freqs = np.arange(2, 20, .5)
 n_cycles = freqs / 2.  # different number of cycle per frequency
 
-ch_occipital = [ch for ch in info.ch_names if 'P'==ch[0]]
+ch_posterior = [ch for ch in info.ch_names if 'O' in ch]
 
 df = pd.DataFrame({'type':[], 'subj':[], 'cond':[], 'power':[]})
+
 power_values = {cond:[] for cond in conditions}
 spectra = {cond:[] for cond in conditions}
 spectra_avgs = {}
 
-chs = ch_occipital
+chs = ch_posterior
 
 for cond in conditions:
     for subj in tqdm(data_freq):

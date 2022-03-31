@@ -130,9 +130,9 @@ Using `epochs_erp`
 
 <img src="md_assets/2022-03-29-14-42-35-image.png" title="" alt="" width="574">
 
-![](md_assets/2022-03-29-17-11-46-image.png)
+![](md_assets/2022-03-31-10-12-33-image.png)
 
-<img src="md_assets/2022-03-29-15-18-23-image.png" title="" alt="" width="751">
+<img title="" src="md_assets/2022-03-31-10-12-52-image.png" alt="" width="751">
 
 **H2b Calculate**
 
@@ -144,7 +144,7 @@ Using `epochs_erp`
 For each participant:
     For each epoch of participant:
         1. calculate wavelet with
-        - freq = array([4. , 4.5 , 5. , 5.5, 6., 6.5 ])
+        - freq = array([4. , 4.5 , 5. , 5.5, 6., 6.5, 7.0 ])
         - use half cycles
     2. take segment between 300-500ms for fronto-central electrodes
     3. calculate mean over result
@@ -152,22 +152,20 @@ For each participant:
 
 **Result**
 
-- For electrodes `[FC5, FC3, FC1, FC6, FC4, FC2, FCz]`
+- For electrodes `[FCz, FC1, FC2]`
 - Mean Power between 300-500 ms
-  - `new 6.25e-10+-2.91e-10`
-  - `old 6.54e-10+-3.44e-10`
-  - `p = 0.1`
+  - `new 7.04e-10+-2.62e-10`
+  - `old 7.26e-10+-2.56e-10`
+  - `p = 0.00074`
 
 **Problems**:
 
 - How to normalize histograms?
 - What to do with outliers?
 
-![](md_assets/2022-03-30-15-23-22-image.png)
+![](md_assets/2022-03-31-10-21-02-image.png)
 
-![](md_assets/2022-03-30-14-57-38-image.png)
-
-**H2C**
+![](md_assets/2022-03-31-10-20-41-image.png)**H2C**
 
     **methods**:
 
@@ -189,15 +187,9 @@ For each participant:
   * `old 4.56e-10+-2.16e-10`
   * `p = 0.6`
 
-
-
 ![](md_assets/2022-03-30-15-15-41-image.png)
 
 ![](md_assets/2022-03-30-15-11-25-image.png)
-
-
-
-
 
 ### 2.3 H3: successful recognition
 
@@ -214,13 +206,9 @@ old images correctly recognized as old [hits] vs. old images incorrectly judged 
 - mass univat ansatz
 - cluster correction from oostenfeld
 
-
-
 ![](md_assets/2022-03-30-15-38-02-image.png)
 
 ![](md_assets/2022-03-30-15-41-26-image.png)
-
-
 
 ### 2.3 H4: successful recognition
 
@@ -233,13 +221,9 @@ be successfully remembered vs. forgotten on a subsequent repetition) ...    
 
 same as above
 
-
-
 ![](md_assets/2022-03-30-15-40-20-image.png)
 
 ![](md_assets/2022-03-30-15-40-35-image.png)
-
-
 
 ## notes/questions:
 
