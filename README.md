@@ -183,13 +183,13 @@ For each participant:
 
 * For electrodes `['P1', 'P3', 'P5', 'P7', 'P9', 'PO7', 'PO3', 'POz', 'Pz', 'P2', 'P4', 'P6', 'P8', 'P10', 'PO8', 'PO4']`
 * Mean Power between 300-500 ms
-  * `new 4.55e-10+-2.12e-10`
-  * `old 4.56e-10+-2.16e-10`
-  * `p = 0.6`
+  * `new 5.33e-10+-2.08e-10`
+  * `old 5.33e-10+-2.04e-10`
+  * `p = 0.9`
 
-![](md_assets/2022-03-30-15-15-41-image.png)
+![](md_assets/2022-03-31-10-35-18-image.png)
 
-![](md_assets/2022-03-30-15-11-25-image.png)
+![](md_assets/2022-03-31-10-34-57-image.png)
 
 ### 2.3 H3: successful recognition
 
