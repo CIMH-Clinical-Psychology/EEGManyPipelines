@@ -2,7 +2,11 @@
 """
 Created on Tue Nov 16 15:22:04 2021
 
-@author: Simon
+This is the global configuration file that stores user-specific information.
+
+The datadirectory should be indicated here.
+
+@author: Simon Kern
 """
 
 import os
@@ -11,7 +15,10 @@ import platform
 import hashlib
 
 def md5hash(array):
-    xbytes = array.tobytes()
+    if isinstance(array, str):
+        xbytes = array.encode()
+    else:
+        xbytes = array.tobytes()
     return hashlib.shake_256(xbytes).hexdigest(5)
 
 def stim2desc(string):
@@ -40,12 +47,11 @@ home = os.path.expanduser('~')
 
 cache_dir = None
 
-if username == 'simon' and host=='desktop-simon':
+if username == 'simon' and md5hash(host)=='245f2c5750':
     data_dir = 'z:/EEGManyPipelines/'
     cache_dir = 'z:/cache/'
-
     
-elif username == 'simon.kern' and host=='zilxap29':
+elif username == 'simon.kern' and md5hash(host)=='a994e83fa0':
     data_dir = '/home/simon.kern/EMP_data/'  
     cache_dir = '/data/EEGManyPipelines/joblib-cache-2/'
   

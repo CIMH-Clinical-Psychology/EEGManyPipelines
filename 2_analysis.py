@@ -10,6 +10,7 @@ All steps outlined in this script are described in the README
 @author: Simon Kern
 """
 from joblib import Parallel, delayed
+from functools import partial
 import os
 import mne
 import json
@@ -33,7 +34,9 @@ from joblib.memory import Memory
 import scipy.stats as stats
 from mne import EvokedArray, EpochsArray, Evoked
 from collections import namedtuple
-
+from mne.stats import spatio_temporal_cluster_1samp_test
+from mne.stats import (ttest_1samp_no_p, bonferroni_correction, fdr_correction,
+                       permutation_t_test, permutation_cluster_1samp_test)
 
 def get_ch_neighbours(ch_name, n=9, plot=False):
     """retrieve the n neighbours of a given electrode location.
@@ -104,7 +107,6 @@ ch_names = data_erp[subj].ch_names
 info = data_erp[subj].info
 grand_avg = mne.grand_average([epochs.average() for epochs in data_erp.values()])
 results = pd.DataFrame()
-
 
 stop
 #%%  
@@ -425,33 +427,128 @@ plt.title(f'Power for individual participants for {fmin}/{fmax} Hz on \n{chs}')
 
 # calculate cluster analysis from time 0ms - 500ms and from 300ms-500ms
 
+
 conditions = ['hit', 'miss']
 tmin, tmax = [0.0, 0.5]
-erp_range = 0.005 # 5ms
+
+cluster_data = {}
+grands = {}
+
+for cond in conditions:
+    # cluster data contains a list with the ERP for each subject for the given condition
+    cluster_data_ = [epochs[cond].get_data(tmin=tmin, tmax=tmax).mean(0) for epochs in data_erp.values()]
+    cluster_data[cond] =  np.stack(cluster_data_)
+    # grands contains the grand average of both conditions across all subjects
+    grands[cond] = mne.grand_average([epochs[cond].average() for epochs in data_erp.values()])
+    
+X = [np.transpose(x, (0, 2, 1)) for x in (cluster_data.values())]
+# to compute a paired sample test, we simply compute the difference and run a 1samp test
+X_diff = X[0]-X[1]
+
+# tfce threshold finding. the lower both values, the longer but the more accurate
+threshold_tfce = dict(start=0, step=0.2) 
+
+# adjacency should account for channel connectivity, so 64x64 array 
+# the time adjacency is set to 1 timestep and is implicit
+# in this case we load the adjacency template file from FieldTrip for BioSemi64
+sensor_adjacency, _ = mne.channels.read_ch_adjacency('biosemi64_neighb.mat')
+t_obs, clusters, cluster_pv, h0 = spatio_temporal_cluster_1samp_test(X_diff, 
+                                                                    adjacency=sensor_adjacency, 
+                                                                    tail=0, 
+                                                                    out_type='mask',
+                                                                    # threshold=threshold_tfce,
+                                                                    n_permutations=1000, n_jobs=-1)
+clusters = np.array(clusters)
+
+cluster_sizes = [clust.sum() for clust in clusters]
+cluster_df = pd.DataFrame({'size': cluster_sizes, 'pvals':cluster_pv})
+print(cluster_df.sort_values('pvals'))
+
+# only take significant clusters
+significant_points = np.max(clusters[cluster_pv<0.05], 0).T
+
+        
+evoked_diff = mne.combine_evoked(list(grands.values()) , weights=[1, -1]).crop(tmin, tmax)
+fig_h3_diff = evoked_diff.plot_joint(times = np.linspace(tmin, tmax, 7), title=f'Difference {" - ".join(conditions)}')
+for cluster,p in zip(clusters, cluster_pv):
+    if p>0.05: continue
+    evoked_diff.plot_image(mask=np.pad(cluster.T, [1,0]), show_names='all')
+
+fig_h3_clust = evoked_diff.plot_image(mask=np.pad(significant_points, [1,0]), show_names='all')
+plt.title(f'Cluster contrast difference {" - ".join(conditions)}')
+
+#%% **H3b hit/miss freq power
+# There are effects of successful recognition of old images (i.e., a difference between
+# old images correctly recognized as old [hits] vs. old images incorrectly judged as new
+# [misses]).. on spectral power, at any frequencies, at any channels, at any time.
+
+# calculate cluster analysis from time 0ms - 500ms and from 300ms-500ms
+from mne.time_frequency import tfr_morlet, psd_welch, psd_multitaper, tfr_stockwell
+
+conditions = ['hit', 'miss']
+tmin, tmax = [0.0, 0.5]
+
+freqs = np.arange(0.5, 20, .5)
+n_cycles = freqs / 2.  # different number of cycle per frequency
 
 cluster_data = {}
 grands = {}
 # for ERP_tp in np.arange(120, 130)/1000:
-for cond in conditions:
-    cluster_data_ = [epochs[cond].get_data(tmin=tmin, tmax=tmax).mean(0) for epochs in data_erp.values()]
-    cluster_data[cond] =  np.stack(cluster_data_)
-    grands[cond] = mne.grand_average([epochs[cond].average() for epochs in data_erp.values()])
     
-X = [np.transpose(x, (0, 2, 1)) for x in (cluster_data.values())]
+spectra = {cond:[] for cond in conditions}
+spectra_avgs = {cond:[] for cond in conditions}
 
-adjacency, _ = mne.channels.find_ch_adjacency(info, 'eeg')
-t_obs, clusters, cluster_pv, h0 = mne.stats.spatio_temporal_cluster_test(X, adjacency=adjacency, tail=0, 
-                                                                         n_permutations=1000, n_jobs=-1, threshold=1.96)
-significant_points = np.zeros_like(X[0][0], dtype=bool).T
-for _cluster in clusters:
-    for x, y in zip(*_cluster):
-        significant_points[y, x] = True
+threshold_tfce = dict(start=0, step=0.2) 
+
+for cond in conditions:
+    for subj in tqdm(data_freq):
+        epochs = data_freq[subj][cond]
+
+        power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, 
+                           return_itc=False, n_jobs=-1)
+        power.apply_baseline([None, 0])
+        power.crop(tmin=tmin, tmax=tmax)
+        spectra[cond].append(power.copy())
         
-evoked_diff = mne.combine_evoked(list(grands.values()) , weights=[1, -1]).crop(tmin, tmax)
-fig_h3_diff = evoked_diff.plot_joint(times = np.linspace(tmin, tmax, 7), title=f'Difference {" - ".join(conditions)}')
-fig_h3_clust = evoked_diff.plot_image(mask=np.pad(significant_points, [1,0]), show_names='all')
-plt.title(f'Cluster contrast difference {" - ".join(conditions)}')
+    spectra_avgs[cond] = np.mean(spectra[cond])
 
+X = [np.array([np.transpose(y.data, (2, 1, 0)) for y in x]) for x in (spectra.values())]
+X_diff = X[0]-X[1]
+
+sensor_adjacency, _ = mne.channels.read_ch_adjacency('biosemi64_neighb.mat')
+adjacency = mne.stats.combine_adjacency(sensor_adjacency, len(power.freqs), len(power.times))
+
+t_obs, clusters, cluster_pv, h0 = spatio_temporal_cluster_1samp_test(X_diff, 
+                                                                     tail=0, 
+                                                                     out_type='mask',
+                                                                     # adjacency=adjacency,
+                                                                      threshold=3,
+                                                                      verbose='DEBUG',
+                                                                     n_permutations=1000, n_jobs=-1)
+
+clusters_df = pd.DataFrame({'size':np.sum(clusters,(1,2,3)),
+                            'pval':cluster_pv})
+print(clusters_df.sort_values('pval'))
+
+clusters_significant = np.array(clusters)[cluster_pv<0.05]
+avg_trf_diff = np.mean([spectra[conditions[0]][i] - spectra[conditions[1]][i] for i in range(len(data_freq))])
+
+for clust_id, cluster in enumerate(clusters_significant):
+    ch_clusters = np.where(cluster.sum((0,1))>0)[0]
+    fig, axs = plt.subplots(3, np.ceil(len(ch_clusters)/3).astype(int)); axs=axs.flatten()
+    for i, ch_idx in enumerate(ch_clusters):
+        ax = axs[i]
+        avg_trf_diff.plot(picks=[ch_idx], axes=[ax], mask=cluster[:, :, ch_idx].T)
+        ax.set_title(f'{ch_names[ch_idx]}')
+    fig.suptitle(f'Cluster {clust_id+1} for difference: {"-".join(conditions)} (only electrodes with cluster occurence)')
+
+    avg_trf_diff.plot_topo(tmin=0, tmax=0.7, picks=ch_clusters, border=(0,0,0),
+                           vmin=-1e-9, vmax=1e-9, fig_facecolor=(0.5,0.5,0.5),
+                           title=f'Cluster {clust_id+1} Time-Frequency difference for {conditions[0]}-{conditions[1]}')
+
+fig_avg_hitmiss_diff= avg_trf_diff.plot_topo(tmin=0, tmax=0.7, 
+                                             vmin=-1e-9, vmax=1e-9,
+                                             title=f'Time-Frequency difference for {conditions[0]}-{conditions[1]}')
 
 
 #%% **H4a remembered/forgotten voltage
@@ -460,27 +557,111 @@ plt.title(f'Cluster contrast difference {" - ".join(conditions)}')
 # any channels, at any time.
 conditions = ['hit/remembered', 'hit/forgotten']
 tmin, tmax = [0.0, 0.5]
-erp_range = 0.005 # 5ms
+
+cluster_data = {}
+grands = {}
+
+for cond in conditions:
+    # cluster data contains a list with the ERP for each subject for the given condition
+    cluster_data_ = [epochs[cond].get_data(tmin=tmin, tmax=tmax).mean(0) for epochs in data_erp.values()]
+    cluster_data[cond] =  np.stack(cluster_data_)
+    # grands contains the grand average of both conditions across all subjects
+    grands[cond] = mne.grand_average([epochs[cond].average() for epochs in data_erp.values()])
+    
+X = [np.transpose(x, (0, 2, 1)) for x in (cluster_data.values())]
+# to compute a paired sample test, we simply compute the difference and run a 1samp test
+X_diff = X[0]-X[1]
+
+# tfce threshold finding. the lower both values, the longer but the more accurate
+threshold_tfce = dict(start=0, step=0.2) 
+
+# adjacency should account for channel connectivity, so 64x64 array 
+# the time adjacency is set to 1 timestep and is implicit
+# in this case we load the adjacency template file from FieldTrip for BioSemi64
+sensor_adjacency, _ = mne.channels.read_ch_adjacency('biosemi64_neighb.mat')
+t_obs, clusters, cluster_pv, h0 = spatio_temporal_cluster_1samp_test(X_diff, 
+                                                                    adjacency=sensor_adjacency, 
+                                                                    tail=0, 
+                                                                    out_type='mask',
+                                                                    threshold=threshold_tfce,
+                                                                    n_permutations=1000, n_jobs=-1)
+clusters = np.array(clusters)
+significant_points = (clusters[cluster_pv<0.05]).max(0)
+
+cluster_sizes = [clust.sum() for clust in clusters]
+cluster_df = pd.DataFrame({'size': cluster_sizes, 'pvals':cluster_pv})
+print(cluster_df.sort_values('pvals'))
+       
+evoked_diff = mne.combine_evoked(list(grands.values()) , weights=[1, -1]).crop(tmin, tmax)
+fig_h4_diff = evoked_diff.plot_joint(times = np.linspace(tmin, tmax, 7), title=f'Difference {" - ".join(conditions)}')
+fig_h4_clust = evoked_diff.plot_image(mask=np.pad(significant_points, [1,0]), show_names='all')
+plt.title(f'Cluster contrast difference {" - ".join(conditions)}')
+
+for cluster,p in zip(clusters, cluster_pv):
+    if p>0.05: continue
+    evoked_diff.plot_image(mask=np.pad(cluster.T, [1,0]), show_names='all')
+    plt.title(f'Cluster contrast difference {" - ".join(conditions)}')
+
+
+#%% **H4b remembered/forgotten power
+from mne.time_frequency import tfr_morlet, psd_welch, psd_multitaper, tfr_stockwell
+
+conditions = ['hit/remembered', 'hit/forgotten']
+tmin, tmax = [0.0, 0.5]
+
+freqs = np.arange(0.5, 20, .5)
+n_cycles = freqs / 2.  # different number of cycle per frequency
 
 cluster_data = {}
 grands = {}
 # for ERP_tp in np.arange(120, 130)/1000:
-for cond in conditions:
-    cluster_data_ = [epochs[cond].get_data(tmin=tmin, tmax=tmax).mean(0) for epochs in data_erp.values()]
-    cluster_data[cond] =  np.stack(cluster_data_)
-    grands[cond] = mne.grand_average([epochs[cond].average() for epochs in data_erp.values()])
     
-X = [np.transpose(x, (0, 2, 1)) for x in (cluster_data.values())]
+spectra = {cond:[] for cond in conditions}
+spectra_avgs = {cond:[] for cond in conditions}
 
-adjacency, _ = mne.channels.find_ch_adjacency(info, 'eeg')
-t_obs, clusters, cluster_pv, h0 = mne.stats.spatio_temporal_cluster_test(X, adjacency=adjacency, tail=0, 
-                                                                         n_permutations=1000, n_jobs=-1, threshold=1.96)
-significant_points = np.zeros_like(X[0][0], dtype=bool).T
-for _cluster in clusters:
-    for x, y in zip(*_cluster):
-        significant_points[y, x] = True
+
+for cond in conditions:
+    for subj in tqdm(data_freq):
+        epochs = data_freq[subj][cond]
+
+        power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, 
+                           return_itc=False, n_jobs=-1)
+        power.apply_baseline([None, 0])
+        power.crop(tmin=tmin, tmax=tmax)
+        spectra[cond].append(power.copy())
         
-evoked_diff = mne.combine_evoked(list(grands.values()) , weights=[1, -1]).crop(tmin, tmax)
-fig_h3_diff = evoked_diff.plot_joint(times = np.linspace(tmin, tmax, 7), title=f'Difference {" - ".join(conditions)}')
-fig_h3_clust = evoked_diff.plot_image(mask=np.pad(significant_points, [1,0]), show_names='all')
-plt.title(f'Cluster contrast difference {" - ".join(conditions)}')
+    spectra_avgs[cond] = np.mean(spectra[cond])
+
+X = [np.array([np.transpose(y.data, (2, 1, 0)) for y in x]) for x in (spectra.values())]
+X_diff = X[0]-X[1]
+
+sensor_adjacency, _ = mne.channels.read_ch_adjacency('biosemi64_neighb.mat')
+adjacency = mne.stats.combine_adjacency(sensor_adjacency, len(power.freqs), len(power.times))
+
+t_obs, clusters, cluster_pv, h0 = spatio_temporal_cluster_1samp_test(X_diff, 
+                                                                     tail=0, 
+                                                                     out_type='mask',
+                                                                     # adjacency=adjacency,
+                                                                     n_permutations=1000, n_jobs=-1)
+
+clusters_df = pd.DataFrame({'size':np.sum(clusters,(1,2,3)),
+                            'pval':cluster_pv})
+print(clusters_df.sort_values('pval'))
+
+clusters_significant = np.array(clusters)[cluster_pv<0.05]
+avg_trf_diff = np.mean([spectra[conditions[0]][i] - spectra[conditions[1]][i] for i in range(len(data_freq))])
+
+for clust_id, cluster in enumerate(clusters_significant):
+    ch_clusters = np.where(cluster.sum((0,1))>0)[0]
+    fig, axs = plt.subplots(2, np.ceil(len(ch_clusters)/2).astype(int)); axs=axs.flatten()
+    for i, ch_idx in enumerate(ch_clusters):
+        ax = axs[i]
+        avg_trf_diff.plot(picks=[ch_idx], axes=[ax], mask=cluster[:, :, ch_idx].T)
+        ax.set_title(f'{ch_names[ch_idx]}')
+    fig.suptitle(f'Cluster {clust_id+1} for difference: {"-".join(conditions)} (only electrodes with cluster occurence)')
+
+
+fig_avg_hitmiss_diff= avg_trf_diff.plot_topo(tmin=0, tmax=0.7, 
+                                             vmin=-1e-9, vmax=1e-9,
+                                             title=f'Time-Frequency difference for {conditions[0]}-{conditions[1]}')
+

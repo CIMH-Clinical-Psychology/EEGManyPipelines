@@ -60,7 +60,7 @@ Data at this point:
   - additional LP 35 Hz
   - downsampled to 250 Hz
 
-### 2.1 H1: Effect of scene category
+### H1: Effect of scene category (done)
 
 ```
 There is an effect of scene category (i.e., a difference between images showing
@@ -97,9 +97,9 @@ Using `epochs_erp`
 
 <img title="" src="md_assets/2022-03-29-10-09-50-image.png" alt="" width="408"><img title="" src="md_assets/2022-03-29-14-52-53-image.png" alt="" width="519">
 
-<img title="" src="md_assets/2022-03-29-14-45-27-image.png" alt="" width="522"><img title="" src="md_assets/2022-03-29-10-18-28-image.png" alt="" width="461"> <img title="" src="md_assets/2022-03-29-10-19-09-image.png" alt="" width="481">
+<img title="" src="md_assets/2022-03-29-14-45-27-image.png" alt="" width="929"><img title="" src="md_assets/2022-03-29-10-18-28-image.png" alt="" width="979"> <img title="" src="md_assets/2022-03-29-10-19-09-image.png" alt="" width="1075">
 
-### 2.2 H2: image novelty
+### H2: image novelty (done)
 
 ```
 There are effects of image novelty (i.e., between images shown for the first time/new
@@ -113,15 +113,14 @@ Using `epochs_erp`
 
 **H2a Calculate**
 
-1. make avg of trials per subj per electrode
-2. plot grand averages from 300-500ms, take peak negative electrode and surrounding frontal electrodes
-3. AUC 300ms-500ms of peak
+1. Take Fronto-Central channels for calculation ('FCx')
+2. AUC 300ms-500ms of peak
    * repeated measures ttest
 
 **Results**
 
 * Negative peak between `0.3` and `0.5` on grand average is at `FCz`
-* Taking electrodes `['FCz', 'FC1', 'FC2', 'Fz', 'F2', 'F1']`
+* Taking electrodes `['FCz', 'FC1', 'FC2']`
 * voltage from `300-500ms` on these electrodes: 
   * `new = -6.39+-3.46 uV`
   * `old = -6.00+-3.53 uV`
@@ -160,7 +159,7 @@ For each participant:
 
 **Problems**:
 
-- How to normalize histograms?
+- How to normalize histograms? -> doesn't matter bc within-subject and same sessions
 - What to do with outliers?
 
 ![](md_assets/2022-03-31-10-21-02-image.png)
@@ -173,7 +172,7 @@ For each participant:
 For each participant:
     For each epoch of participant:
         1. calculate wavelet with
-        - freq = array([8. ,  8.5,  9. ,  9.5, 10. , 10.5, 11. , 11.5, 12. , 12.5, 13. , 13.5,])
+        - freq = array([8. ,  8.5,  9. ,  9.5, 10. , 10.5, 11. , 11.5, 12. , 12.5, 13. , 13.5, 14.0])
         - use half cycles
     2. take segment between 300-500ms for posterior electrodes
     3. calculate mean over result
@@ -181,7 +180,7 @@ For each participant:
 
 **Result**
 
-* For electrodes `['P1', 'P3', 'P5', 'P7', 'P9', 'PO7', 'PO3', 'POz', 'Pz', 'P2', 'P4', 'P6', 'P8', 'P10', 'PO8', 'PO4']`
+* For electrodes `[PO7', 'PO3', 'POz',  'PO8', 'PO4', 'O1', 'O2']`
 * Mean Power between 300-500 ms
   * `new 5.33e-10+-2.08e-10`
   * `old 5.33e-10+-2.04e-10`
@@ -191,7 +190,7 @@ For each participant:
 
 ![](md_assets/2022-03-31-10-34-57-image.png)
 
-### 2.3 H3: successful recognition
+### H3: successful recognition
 
 ```
 There are effects of successful recognition of old images (i.e., a difference between
@@ -201,16 +200,43 @@ old images correctly recognized as old [hits] vs. old images incorrectly judged 
    b. ... on spectral power, at any frequencies, at any channels, at any time.
 ```
 
+#### H3a: voltage
+
+- 
 - plot grand avrg and differences between categories
 - for later: divide in time windows, calculate statistics, use cluster analysis / stats corrections to check where differences are significant
 - mass univat ansatz
 - cluster correction from oostenfeld
+- Take repeated measures F test
+- Report all channels and all timepoints that are in cluster
 
 ![](md_assets/2022-03-30-15-38-02-image.png)
 
-![](md_assets/2022-03-30-15-41-26-image.png)
+![](md_assets/2022-04-20-14-54-12-image.png)
 
-### 2.3 H4: successful recognition
+*Clusters based on TFCE*
+
+<img title="" src="md_assets/2022-04-20-14-57-12-image.png" alt="" width="464"><img title="" src="md_assets/2022-04-20-14-57-46-image.png" alt="" width="459">
+
+*Clusters based on 0.05, two clusters found*
+
+#### H3b: frequency
+
+Cluster analysis using 1 sample ttest reports three clusters that stretch across time and frequency and channels
+
+![](md_assets/2022-04-20-16-37-23-image.png)
+
+![](md_assets/2022-04-20-16-37-36-image.png)
+
+### ![](md_assets/2022-04-20-16-37-51-image.png)
+
+![](md_assets/2022-04-20-16-38-05-image.png)
+
+![](md_assets/2022-04-20-16-38-23-image.png) 
+
+![](md_assets/2022-04-20-16-38-33-image.png)
+
+### H4: successful recognition
 
 ```
 4. There are effects of subsequent memory (i.e., a difference between images that will
@@ -221,9 +247,21 @@ be successfully remembered vs. forgotten on a subsequent repetition) ...    
 
 same as above
 
+#### H4a: Voltage
+
+Cluster analysis found no cluster that was significant with p<0.05.
+
 ![](md_assets/2022-03-30-15-40-20-image.png)
 
-![](md_assets/2022-03-30-15-40-35-image.png)
+pvalue map. darkest blue=0.2
+
+![](md_assets/2022-04-20-15-26-48-image.png)
+
+#### H4b: Time-Frequency
+
+No significant clusters.
+
+![](md_assets/2022-04-20-16-18-47-image.png)
 
 ## notes/questions:
 
@@ -253,6 +291,11 @@ same as above
 5. Resampling later?
 
 make difference topo plot
+
+#### 08.04
+
+* create difference on subj level
+* sanity check for f test: calcualte on previous results, sohuld give same p val
 
 ### earlier
 
