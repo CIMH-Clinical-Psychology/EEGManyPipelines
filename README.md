@@ -89,10 +89,10 @@ Using `epochs_erp`
 
 - Negative peak between `0.08` and `0.15` on grand average is at `125ms @ Fz`.
 - voltage +-5ms:
-  - `man-made = -3.05+-1.81 uV`
-  - `natural  = -2.71+-1.82 uV`
+  - `man-made = -3.09+-1.86 uV`
+  - `natural  = -2.76+-1.87 uV`
 - repeated measures ttest (`ttest_rel`)
-  - `p = 0.00093` 
+  - `p = 0.001187815` 
 - Cluster analysis showed significant cluster on occipital electrodes at a later point
 
 <img title="" src="md_assets/2022-03-29-10-09-50-image.png" alt="" width="408"><img title="" src="md_assets/2022-03-29-14-52-53-image.png" alt="" width="519">
@@ -122,10 +122,10 @@ Using `epochs_erp`
 * Negative peak between `0.3` and `0.5` on grand average is at `FCz`
 * Taking electrodes `['FCz', 'FC1', 'FC2']`
 * voltage from `300-500ms` on these electrodes: 
-  * `new = -6.39+-3.46 uV`
-  * `old = -6.00+-3.53 uV`
+  * `new = -6.40+-3.50 uV`
+  * `old = -5.99+-3.52 uV`
 * repeated measures ttest (`ttest_rel`)
-  * `p = 0.0000046`
+  * `p = 0.000001946596`
 
 <img src="md_assets/2022-03-29-14-42-35-image.png" title="" alt="" width="574">
 
@@ -153,9 +153,9 @@ For each participant:
 
 - For electrodes `[FCz, FC1, FC2]`
 - Mean Power between 300-500 ms
-  - `new 7.04e-10+-2.62e-10`
-  - `old 7.26e-10+-2.56e-10`
-  - `p = 0.00074`
+  - `new 7.06e-10+-2.59-10`
+  - `old 7.27e-10+-2.53e-10`
+  - `p = 0.000802`
 
 **Problems**:
 
@@ -182,9 +182,9 @@ For each participant:
 
 * For electrodes `[PO7', 'PO3', 'POz',  'PO8', 'PO4', 'O1', 'O2']`
 * Mean Power between 300-500 ms
-  * `new 5.33e-10+-2.08e-10`
-  * `old 5.33e-10+-2.04e-10`
-  * `p = 0.9`
+  * `new 5.33e-10+-2.09e-10`
+  * `old 5.32e-10+-2.04e-10`
+  * `p = 0.85`
 
 ![](md_assets/2022-03-31-10-35-18-image.png)
 

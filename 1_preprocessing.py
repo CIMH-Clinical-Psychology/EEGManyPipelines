@@ -151,7 +151,7 @@ for subj in tqdm(subjects, desc='Loading participant information'):
                         event_id=stim_dict, picks=picks_eeg, preload=True,
                         verbose='WARNING')
     epochs.filter(0, 35, method='fir', verbose='WARNING')
-    
+    stop
     stim_dict_inv = {v: k for k, v in stim_dict.items()}
     #%% apply artefact criteria 
     
