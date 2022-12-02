@@ -52,8 +52,8 @@ if username == 'simon' and md5hash(host)=='245f2c5750':
     cache_dir = 'z:/cache/'
     
 elif username == 'simon.kern' and md5hash(host)=='a994e83fa0':
-    data_dir = '/home/simon.kern/EMP_data/'  
-    cache_dir = '/data/EEGManyPipelines/joblib-cache-2/'
+    data_dir = '/data/Simon/EEGManyPipelines/'  
+    cache_dir = '/data/Simon/joblib-cache/eegmanypipeliens/'
   
 else:
     print('Username {} on host {} with {} has no configuration.\n'.format(username,host,system) + \
